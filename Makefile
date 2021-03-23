@@ -1,4 +1,4 @@
-FILE = test#name of your asm file
+FILE = Frogger#name of your asm file
 BOOT_FILE = BOOTX64
 
 .PHONY: build
