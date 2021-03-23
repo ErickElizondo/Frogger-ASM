@@ -15,10 +15,6 @@ main:
 	; Initialize UEFI library
 	InitializeLib
 
-	; Equivalent to SystemTable->ConOut->OutputString(SystemTable->ConOut, "Message")
-	uefi_call_wrapper ConOut, OutputString, ConOut, welcome_message
-	uefi_call_wrapper ConOut, OutputString, ConOut, input_message
-
 	jmp play
 
 play:
@@ -30,6 +26,7 @@ play:
 	call move_vehicles
 	call show_board
 	call get_user_input
+    mov [input_delay], 0
 	call identify_key
 	jmp play
 
@@ -267,21 +264,25 @@ show_board:
 
 ; This subroutine waits until the user press any key
 get_user_input:
-	uefi_call_wrapper ConIn, ReadKeyStroke, ConIn, INPUT_KEY
-	cmp byte[INPUT_KEY.UnicodeChar], 0
-	jz get_user_input
-	retn
+    inc [input_delay] 
+    uefi_call_wrapper ConIn, ReadKeyStroke, ConIn, key  
+    cmp byte[key.unicode], 0
+    jnz return_input 
+    cmp [input_delay],100000
+    jne get_user_input
+return_input:
+    retn
 
 ; If the user press any other key just the vehicles move
 identify_key:
 	call clear_screen
-	cmp byte[INPUT_KEY+2], "w"
+	cmp byte[key+2], "w"
 	je move_up
-	cmp byte[INPUT_KEY+2], "a"
+	cmp byte[key+2], "a"
 	je move_left
-	cmp byte[INPUT_KEY+2], "s"
+	cmp byte[key+2], "s"
 	je move_down
-	cmp byte[INPUT_KEY+2], "d"
+	cmp byte[key+2], "d"
 	je move_right
 
 	retn
@@ -292,8 +293,6 @@ clear_screen:
 	retn
 
 move_down:
-
-	uefi_call_wrapper ConOut, OutputString, ConOut, down_message
 
 	xor eax,eax
 
@@ -322,8 +321,6 @@ move_down:
 
 move_up:
 
-	uefi_call_wrapper ConOut, OutputString, ConOut, up_message
-
 	xor eax,eax
 
 	; Store the frog poistion
@@ -350,8 +347,6 @@ move_up:
 
 move_right:
 
-	uefi_call_wrapper ConOut, OutputString, ConOut, right_message
-
 	xor eax,eax
 
 	; Store the for poistion
@@ -377,8 +372,6 @@ move_right:
 	retn
 
 move_left:
-
-	uefi_call_wrapper ConOut, OutputString, ConOut, left_message
 
 	xor eax,eax
 
@@ -530,6 +523,7 @@ section '.data' data readable writeable
 	board_rows			dd		5
 	board_cols			dd		68
 	len_board				dd		360
+    input_delay dd 0
 
 	board						du		13,10,'..................................',\
 												13,10,'...XXX............................',\
@@ -540,21 +534,15 @@ section '.data' data readable writeable
 	frog						du		'R'
  	empty_cell			du		'.'
 	vehicle					du		'X'
-	INPUT_KEY				EFI_INPUT_KEY
+	
+    key:
+    key.scancode:	dw 			0
+    key.unicode:	du			0
 
 	; Output Messages
-	input_message 	du 		'To move your Frog use (W - A - S - D)...',13,10,0
 	lose_message  	du 		'You have lost! Thanks for playing!',13,10,\
 												':(',13,0
 	win_message	  	du 		'You have won! Thanks for playing!',13,10,\
 												':D',13,0
-	left_message 		du		'Move left',13,10,0
-	right_message 	du		'Move right',13,10,0
-	up_message 			du		'Move up',13,10,0
-	down_message 		du		'Move down',13,10,0
-	welcome_message du		13,10,'Welcome!',13,10,'This is the Frogger Game V0.1',13,10,\
-												'If you are watching this is because the Operating System is not working anymore',\
-												' so we thought that this would be a very joyful and funny Panic Mode.',13,10,10,\
-												'Enjoy it, greetings.',13,10,10,10,0
 
 section '.reloc' fixups data discardable
