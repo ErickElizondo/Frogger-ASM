@@ -334,7 +334,7 @@ move_up:
 	sub eax,72
 
 	call check_game_over
-	call check_win_game
+	call check_win_set
 
 	; Draw the 'R' in new position
 	mov cl,byte[frog]
@@ -413,9 +413,10 @@ check_first_row:
 	sub eax,72
 	retn
 
-check_win_game:
+check_win_set:
+
 	cmp eax,[board_cols]
-	jl win_game
+	jl win_set
 	retn
 
 ; Check if frog_position has reached a left limit
@@ -487,10 +488,36 @@ restart_frog_to_right:
 
 	jmp play
 
+restart_start_pos:
+	mov [frog_position], 326
+	mov eax, [frog_position]
+	mov cl,byte[frog]
+	mov byte[board+eax],cl
+    jmp play
+
+
 game_over:
 	call clear_screen
 	uefi_call_wrapper ConOut, OutputString, ConOut, lose_message
 	jmp finish
+
+restore_pos:
+	add eax,72
+	mov cl,byte[frog]
+	mov byte[board+eax],cl
+    jmp play
+
+win_set:
+	cmp byte[board+eax], '_'
+	jne restore_pos
+	cmp byte[win_count], 4
+	jge win_game
+	inc byte[win_count]
+	mov cl,byte[frog]
+	mov byte[board+eax],cl
+	jmp restart_start_pos
+
+
 
 win_game:
 	call clear_screen
@@ -524,8 +551,9 @@ section '.data' data readable writeable
 	board_cols			dd		68
 	len_board				dd		360
     input_delay dd 0
+	
 
-	board						du		13,10,'..................................',\
+	board						du				13,10,'.._......_......_......_......_...',\
 												13,10,'...XXX............................',\
 												13,10,'...................XX.............',\
 								 				13,10,'...........X......................',\
@@ -534,7 +562,9 @@ section '.data' data readable writeable
 	frog						du		'R'
  	empty_cell			du		'.'
 	vehicle					du		'X'
-	
+	win_slot du '_'
+	win_count db 0
+
     key:
     key.scancode:	dw 			0
     key.unicode:	du			0
