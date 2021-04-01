@@ -1,7 +1,3 @@
-; Frogger UEFI application made by Isaac Mena López
-; Principios de Sistemas Oprativos - TEC
-; 27-29/02/19
-
 format pe64 dll efi
 entry main
 
@@ -18,8 +14,6 @@ main:
 	jmp play
 
 play:
-
-	;	Equivalent to SystemTable->ConIn->Reset(SystemTable->ConIn, FALSE);
 	; Clean the Input bufer
 	uefi_call_wrapper ConIn, Reset, ConIn, 0
 
@@ -111,6 +105,34 @@ move_bus:
 	mov [bus_position],eax
 	retn
 
+move_bus2:
+	xor eax,eax
+
+	; Store the current bus position
+	mov eax,[bus_position2]
+
+	; Delete bus and add an empty cell
+	mov cl,byte[empty_cell]
+	mov byte[board+eax],cl
+
+	; Move the first "X" 3 positions to the right
+	; "xXX" -> "XX" -> "XXx"
+	add eax,6
+
+	call bus2_reach_end
+	call check_bus_colission
+
+	; Draw the bus head "XXX"
+	mov cl,byte[vehicle]
+	mov byte[board+eax],cl
+
+	; Set the truck default position to the first 'X'
+	sub eax,4
+
+	; Update position
+	mov [bus_position2],eax
+	retn
+
 ; This subroutine checks if the car has reached the left limit
 car_reach_end:
 	add eax,2
@@ -120,7 +142,7 @@ car_reach_end:
 	sub eax,2
 	retn
 
-; This subroutine checks if the car has reached the right limit
+; This subroutine checks if the truck has reached the right limit
 truck_reach_end:
 	sub eax,2
 	cmp eax,[right_limit_row3]
@@ -129,7 +151,7 @@ truck_reach_end:
 	add eax,2
 	retn
 
-; This subroutine checks if the car has reached the right limit
+; This subroutine checks if the bus has reached the right limit
 bus_reach_end:
 	sub eax,2
 	cmp eax,[right_limit_row2]
@@ -137,6 +159,14 @@ bus_reach_end:
 
 	add eax,2
 	retn
+bus2_reach_end:
+	sub eax,2
+	cmp eax,[right_limit_row2]
+	je restart_bus2
+
+	add eax,2
+	retn
+
 
 ; This subroutine restart the car position to the first right position
 restart_car:
@@ -216,9 +246,38 @@ restart_bus:
 
 	; Update the bus position
 	mov [bus_position],eax
-
 	jmp play
 
+restart_bus2:
+	; Delete the 3 bus 'XXX'
+	mov cl,byte[empty_cell]
+	mov byte[board+eax],cl
+
+	sub eax,2
+	mov byte[board+eax],cl
+
+	sub eax,2
+	mov byte[board+eax],cl
+
+	; Get the start position of the row
+	add eax,6
+	sub eax,[board_cols]
+
+	; Draw the 'XXX' at the begining of the row
+	xor ecx,ecx
+	mov cl,byte[vehicle]
+	mov byte[board+eax],cl
+	add eax,2
+	mov byte[board+eax],cl
+	add eax,2
+	mov byte[board+eax],cl
+
+	; Set the bus default position to the first 'X'
+	sub eax,4
+
+	; Update the bus position
+	mov [bus_position2],eax
+	jmp play
 ; This subroutine checks if the vehicle has colissioned the Frog
 check_car_colission:
 
@@ -252,23 +311,26 @@ check_bus_colission:
 
 	retn
 
+; This subroutine tells each vehicle in the board to move
 move_vehicles:
 	call move_car
 	call move_truck
 	call move_bus
+	call move_bus2
 	retn
 
 show_board:
 	uefi_call_wrapper ConOut, OutputString, ConOut, board
 	retn
 
-; This subroutine waits until the user press any key
+; This subroutine waits certain amount of time for the user to press any key
+; else, each vehicle moves
 get_user_input:
     inc [input_delay] 
     uefi_call_wrapper ConIn, ReadKeyStroke, ConIn, key  
     cmp byte[key.unicode], 0
     jnz return_input 
-    cmp [input_delay],100000
+    cmp [input_delay],100000 ;decrease this number to make the game faster
     jne get_user_input
 return_input:
     retn
@@ -488,6 +550,7 @@ restart_frog_to_right:
 
 	jmp play
 
+; Subroutine to restart the position of the frog to the inital one
 restart_start_pos:
 	mov [frog_position], 326
 	mov eax, [frog_position]
@@ -500,13 +563,13 @@ game_over:
 	call clear_screen
 	uefi_call_wrapper ConOut, OutputString, ConOut, lose_message
 	jmp finish
-
+; Restores the position of the frog if the 'new' position of the last row isn't '_'
 restore_pos:
 	add eax,72
 	mov cl,byte[frog]
 	mov byte[board+eax],cl
     jmp play
-
+; The game needs you to fill all the "holes" or '_' spaces on the last row to win
 win_set:
 	cmp byte[board+eax], '_'
 	jne restore_pos
@@ -545,6 +608,7 @@ section '.data' data readable writeable
 
 	frog_position		dd		326
 	bus_position		dd		80
+	bus_position2		dd		116
 	truck_position	dd		182
 	car_position		dd		242
 	board_rows			dd		5
@@ -554,7 +618,7 @@ section '.data' data readable writeable
 	
 
 	board						du				13,10,'.._......_......_......_......_...',\
-												13,10,'...XXX............................',\
+												13,10,'...XXX..............XXX...........',\
 												13,10,'...................XX.............',\
 								 				13,10,'...........X......................',\
 								 				13,10,'.................R................',13,10,0
