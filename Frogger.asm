@@ -49,34 +49,6 @@ move_car:
 
 	retn
 
-move_truck:
-	xor eax,eax
-
-	; Store the current truck position
-	mov eax,[truck_position]
-
-	; Delete truck and add an empty cell
-	mov cl,byte[empty_cell]
-	mov byte[board+eax],cl
-
-	; Move the first "X" 2 positions to the right
-	add eax,4
-
-	call truck_reach_end
-	call check_truck_colission
-
-	; Draw the truck head "XX"
-	mov cl,byte[vehicle]
-	mov byte[board+eax],cl
-
-	; Set the truck default position to the first 'X'
-	sub eax,2
-
-	; Update the position
-	mov [truck_position],eax
-
-	retn
-
 move_bus:
 	xor eax,eax
 
@@ -87,31 +59,31 @@ move_bus:
 	mov cl,byte[empty_cell]
 	mov byte[board+eax],cl
 
-	; Move the first "X" 3 positions to the right
-	; "xXX" -> "XX" -> "XXx"
-	add eax,6
+	; Move the first "X" 2 positions to the right
+	add eax,4
 
 	call bus_reach_end
 	call check_bus_colission
 
-	; Draw the bus head "XXX"
+	; Draw the bus head "XX"
 	mov cl,byte[vehicle]
 	mov byte[board+eax],cl
 
-	; Set the truck default position to the first 'X'
-	sub eax,4
+	; Set the bus default position to the first 'X'
+	sub eax,2
 
-	; Update position
+	; Update the position
 	mov [bus_position],eax
+
 	retn
 
-move_bus2:
+move_truck:
 	xor eax,eax
 
-	; Store the current bus position
-	mov eax,[bus_position2]
+	; Store the current truck position
+	mov eax,[truck_position]
 
-	; Delete bus and add an empty cell
+	; Delete truck and add an empty cell
 	mov cl,byte[empty_cell]
 	mov byte[board+eax],cl
 
@@ -119,10 +91,10 @@ move_bus2:
 	; "xXX" -> "XX" -> "XXx"
 	add eax,6
 
-	call bus2_reach_end
-	call check_bus_colission
+	call truck_reach_end
+	call check_truck_colission
 
-	; Draw the bus head "XXX"
+	; Draw the truck head "XXX"
 	mov cl,byte[vehicle]
 	mov byte[board+eax],cl
 
@@ -130,7 +102,35 @@ move_bus2:
 	sub eax,4
 
 	; Update position
-	mov [bus_position2],eax
+	mov [truck_position],eax
+	retn
+
+move_truck2:
+	xor eax,eax
+
+	; Store the current truck position
+	mov eax,[truck_position2]
+
+	; Delete truck and add an empty cell
+	mov cl,byte[empty_cell]
+	mov byte[board+eax],cl
+
+	; Move the first "X" 3 positions to the right
+	; "xXX" -> "XX" -> "XXx"
+	add eax,6
+
+	call truck2_reach_end
+	call check_truck_colission
+
+	; Draw the truck head "XXX"
+	mov cl,byte[vehicle]
+	mov byte[board+eax],cl
+
+	; Set the truck default position to the first 'X'
+	sub eax,4
+
+	; Update position
+	mov [truck_position2],eax
 	retn
 
 ; This subroutine checks if the car has reached the left limit
@@ -142,27 +142,27 @@ car_reach_end:
 	sub eax,2
 	retn
 
-; This subroutine checks if the truck has reached the right limit
-truck_reach_end:
-	sub eax,2
-	cmp eax,[right_limit_row3]
-	je restart_truck
-
-	add eax,2
-	retn
-
 ; This subroutine checks if the bus has reached the right limit
 bus_reach_end:
 	sub eax,2
-	cmp eax,[right_limit_row2]
+	cmp eax,[right_limit_row3]
 	je restart_bus
 
 	add eax,2
 	retn
-bus2_reach_end:
+
+; This subroutine checks if the truck has reached the right limit
+truck_reach_end:
 	sub eax,2
 	cmp eax,[right_limit_row2]
-	je restart_bus2
+	je restart_truck
+
+	add eax,2
+	retn
+truck2_reach_end:
+	sub eax,2
+	cmp eax,[right_limit_row2]
+	je restart_truck2
 
 	add eax,2
 	retn
@@ -188,9 +188,9 @@ restart_car:
 
 	jmp play
 
-; This subroutine restart the truck position to the first left position
-restart_truck:
-	; Delete the 2 truck 'XX'
+; This subroutine restart the bus position to the first left position
+restart_bus:
+	; Delete the 2 bus 'XX'
 	mov cl,byte[empty_cell]
 	mov byte[board+eax],cl
 
@@ -208,48 +208,17 @@ restart_truck:
 	add eax,2
 	mov byte[board+eax],cl
 
-	; Set the truck default position to the first 'X'
-	sub eax,2
-
-	; Update truck postion
-	mov [truck_position],eax
-
-	jmp play
-
-; This subroutine restart the bus position to the first left position
-restart_bus:
-	; Delete the 3 bus 'XXX'
-	mov cl,byte[empty_cell]
-	mov byte[board+eax],cl
-
-	sub eax,2
-	mov byte[board+eax],cl
-
-	sub eax,2
-	mov byte[board+eax],cl
-
-	; Get the start position of the row
-	add eax,6
-	sub eax,[board_cols]
-
-	; Draw the 'XXX' at the begining of the row
-	xor ecx,ecx
-	mov cl,byte[vehicle]
-	mov byte[board+eax],cl
-	add eax,2
-	mov byte[board+eax],cl
-	add eax,2
-	mov byte[board+eax],cl
-
 	; Set the bus default position to the first 'X'
-	sub eax,4
+	sub eax,2
 
-	; Update the bus position
+	; Update bus postion
 	mov [bus_position],eax
+
 	jmp play
 
-restart_bus2:
-	; Delete the 3 bus 'XXX'
+; This subroutine restart the truck position to the first left position
+restart_truck:
+	; Delete the 3 truck 'XXX'
 	mov cl,byte[empty_cell]
 	mov byte[board+eax],cl
 
@@ -272,11 +241,42 @@ restart_bus2:
 	add eax,2
 	mov byte[board+eax],cl
 
-	; Set the bus default position to the first 'X'
+	; Set the truck default position to the first 'X'
 	sub eax,4
 
-	; Update the bus position
-	mov [bus_position2],eax
+	; Update the truck position
+	mov [truck_position],eax
+	jmp play
+
+restart_truck2:
+	; Delete the 3 truck 'XXX'
+	mov cl,byte[empty_cell]
+	mov byte[board+eax],cl
+
+	sub eax,2
+	mov byte[board+eax],cl
+
+	sub eax,2
+	mov byte[board+eax],cl
+
+	; Get the start position of the row
+	add eax,6
+	sub eax,[board_cols]
+
+	; Draw the 'XXX' at the begining of the row
+	xor ecx,ecx
+	mov cl,byte[vehicle]
+	mov byte[board+eax],cl
+	add eax,2
+	mov byte[board+eax],cl
+	add eax,2
+	mov byte[board+eax],cl
+
+	; Set the truck default position to the first 'X'
+	sub eax,4
+
+	; Update the truck position
+	mov [truck_position2],eax
 	jmp play
 ; This subroutine checks if the vehicle has colissioned the Frog
 check_car_colission:
@@ -314,9 +314,9 @@ check_bus_colission:
 ; This subroutine tells each vehicle in the board to move
 move_vehicles:
 	call move_car
-	call move_truck
 	call move_bus
-	call move_bus2
+	call move_truck
+	call move_truck2
 	retn
 
 show_board:
@@ -382,7 +382,6 @@ move_down:
 	retn
 
 move_up:
-
 	xor eax,eax
 
 	; Store the frog poistion
@@ -573,14 +572,27 @@ restore_pos:
 win_set:
 	cmp byte[board+eax], '_'
 	jne restore_pos
+	
 	cmp byte[win_count], 4
 	jge win_game
 	inc byte[win_count]
 	mov cl,byte[frog]
 	mov byte[board+eax],cl
+	call show_win_message
 	jmp restart_start_pos
 
-
+show_win_message:
+	cmp byte[win_count], 1
+	jne message_retn
+	call clear_screen
+	uefi_call_wrapper ConOut, OutputString, ConOut, win_message2
+message_loop:
+    uefi_call_wrapper ConIn, ReadKeyStroke, ConIn, key  
+    cmp byte[key.unicode], 0
+    jz message_loop
+message_retn:
+	call clear_screen
+	retn
 
 win_game:
 	call clear_screen
@@ -607,9 +619,9 @@ section '.data' data readable writeable
 	left_limit_row5	dd		292
 
 	frog_position		dd		326
-	bus_position		dd		80
-	bus_position2		dd		116
-	truck_position	dd		182
+	truck_position		dd		80
+	truck_position2		dd		116
+	bus_position	dd		182
 	car_position		dd		242
 	board_rows			dd		5
 	board_cols			dd		68
@@ -638,5 +650,6 @@ section '.data' data readable writeable
 												':(',13,0
 	win_message	  	du 		'You have won! Thanks for playing!',13,10,\
 												':D',13,0
+	win_message2	  	du 		'You have won! But you can still play a bit! Press any key to continue.',13,10,0
 
 section '.reloc' fixups data discardable
