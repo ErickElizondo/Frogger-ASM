@@ -18,3 +18,4 @@ build:
 	mkgpt -o hdimage.bin --image-size 4096 --part fat.img --type system
 	#Command to run this program
 	#qemu-system-x86_64 -pflash OVMF_CODE.fd -hda hdimage.bin
+	#probando esta shit
